@@ -132,6 +132,29 @@ defmodule SSHTunnel do
     open_channel(pid, @stream_local, msg, @ini_window_size, @max_packet_size, :infinity)
   end
 
+  def add_host_key(hostnames, port, public_host_key, connect_options) do
+    :ok
+  end
+
+  def is_host_key(key, host, port, :'ssh-ed25519', connect_options) do
+    true
+  end
+
+  def is_host_key(_, _, _, algorithm, _) do
+    false
+  end
+
+  def user_key(:'ssh-ed25519', _connect_options) do
+    pem = File.read!("/Users/teemu/.ssh/podman-machine-default")
+    entry = :public_key.pem_decode(pem)
+    |> List.first
+    {:ok, :public_key.pem_entry_decode(entry)}
+  end
+
+  def user_key(algorithm, _) do
+    {:error, {:unsupported_algorithm, algorithm}}
+  end
+
   defp open_channel(pid, type, msg, window_size, max_packet_size, timeout) do
     case :ssh_connection_handler.open_channel(
            pid,
@@ -154,7 +177,8 @@ defmodule SSHTunnel do
       user_interaction: false,
       silently_accept_hosts: true,
       user: String.to_charlist(user),
-      password: String.to_charlist(password)
+      password: String.to_charlist(password),
+      key_cb: __MODULE__,
     ]
   end
 end
